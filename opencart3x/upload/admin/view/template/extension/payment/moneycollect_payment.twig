@@ -1,0 +1,117 @@
+{{ header }}
+{{ column_left }}
+
+<div id="content">
+
+    <style>
+        .panel-nav-tabs > .panel-heading {
+            padding-bottom: 0;
+        }
+        .panel-nav-tabs > .panel-heading .nav-tabs {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+    </style>
+
+    <div class="page-header">
+        <div class="container-fluid">
+            <div class="pull-right">
+                <button type="submit" form="form-payment" data-toggle="tooltip" title="{{ button_save }}" class="btn btn-primary"><i class="fa fa-save"></i></button>
+                <a href="{{ cancel }}" data-toggle="tooltip" title="{{ button_cancel }}" class="btn btn-default"><i class="fa fa-reply"></i></a>
+            </div>
+            <h1>{{ heading_title }}</h1>
+            <ul class="breadcrumb">
+                {% for breadcrumb in breadcrumbs %}
+                    <li><a href="{{ breadcrumb.href }}">{{ breadcrumb.text }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="container-fluid">
+        {% if error %}
+            {% for info in error %}
+                <div class="alert alert-danger"><i class="fa fa-exclamation-circle"></i> {{ info }}
+                    <button type="button" class="close" data-dismiss="alert">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if success %}
+            <div class="alert alert-success"><i class="fa fa-exclamation-circle"></i> {{ text_success }}
+                <button type="button" class="close" data-dismiss="alert">&times;</button>
+            </div>
+        {% endif %}
+
+        <div class="panel panel-default panel-nav-tabs">
+
+            <div class="panel-heading">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item active">
+                        <a class="nav-link active" id="general-tab" data-toggle="tab" href="#tabGeneral" role="tab" aria-controls="home" aria-selected="true">General Settings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="payment-tab" data-toggle="tab" href="#tabpayment" role="tab" aria-controls="profile" aria-selected="false">Payment Settings</a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="panel-body">
+                <form action="{{ action }}" method="post" enctype="multipart/form-data" id="form-payment" class="form-horizontal">
+                    <div class="tab-content">
+                        <div class="tab-pane fade active in" id="tabGeneral" role="tabpanel" aria-labelledby="general-tab">
+                            {{ settings_general }}
+                        </div>
+                        <div class="tab-pane fade" id="tabpayment" role="tabpanel" aria-labelledby="payment-tab">
+                            {{ settings_payment }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    if( $ ){
+       
+        function changeModel(model) {
+            if(model === '1'){
+                $('input[name=payment_moneycollect_general_live_public_key],input[name=payment_moneycollect_general_live_private_key]').parents('.form-group').show();
+                $('input[name=payment_moneycollect_general_test_public_key],input[name=payment_moneycollect_general_test_private_key]').parents('.form-group').hide();
+            }else {
+                $('input[name=payment_moneycollect_general_live_public_key],input[name=payment_moneycollect_general_live_private_key]').parents('.form-group').hide();
+                $('input[name=payment_moneycollect_general_test_public_key],input[name=payment_moneycollect_general_test_private_key]').parents('.form-group').show();
+            }
+        }
+
+        changeModel($('select[name=payment_moneycollect_general_mode]').val());
+
+        $('select[name=payment_moneycollect_general_mode]').on('change', function () {
+            console.log($(this).val());
+            changeModel($(this).val());
+        });
+
+        let checkout_mode = $('select[name=payment_moneycollect_creditcard_checkout_mode]');
+
+        if(checkout_mode.length > 0){
+
+            function changeCheckoutModel(model) {
+                if(model === '0'){
+                    $('select[name=payment_moneycollect_creditcard_form_style],select[name=payment_moneycollect_creditcard_save_cards]').parents('.form-group').show();
+                }else {
+                    $('select[name=payment_moneycollect_creditcard_form_style],select[name=payment_moneycollect_creditcard_save_cards]').parents('.form-group').hide();
+                }
+            }
+
+            changeCheckoutModel(checkout_mode.val());
+
+            checkout_mode.on('change', function () {
+                changeCheckoutModel($(this).val());
+            });
+        }
+
+
+    }
+</script>
+
+{{ footer }}

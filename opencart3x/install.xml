@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+    <name>Moneycollect Payments</name>
+    <version>1.0.1</version>
+    <author>Moneycollect</author>
+    <link>https://www.moneycollect.com/</link>
+    <code>MoneycollectPayments</code>
+    <file name="admin/controller/catalog/product.php">
+        <operation>
+            <search><![CDATA[  ]]></search>
+            <add><![CDATA[  ]]></add>
+        </operation>
+    </file>
+</modification>

@@ -1,0 +1,29 @@
+
+{% for item in settings %}
+<div class="form-group">
+    <label class="col-sm-3 control-label">{{ item.title }}</label>
+    <div class="col-sm-6">
+        {% if item.type == 'select' %}
+            <select name="{{ item.name }}" class="form-control">
+                {% for option in item.option %}
+                    <option value="{{ option.value }}" {{ item.value == option.value?'selected':'' }} >{{ option.text }}</option>
+                {% endfor %}
+            </select>
+        {% elseif item.type == 'text' %}
+            <input type="text" name="{{ item.name }}" value="{{ item.value }}" class="form-control" />
+        {% elseif item.type == 'checkbox' %}
+            <input style="margin-top: 11px;" type="checkbox" name="{{ item.name }}" {{ item.value == 'on' ? 'checked' : '' }} value="on" class="form-control" />
+        {% elseif item.type == 'hidden' and item.value  %}
+            <label class="control-label">
+                {{ item.value }}
+                <input type="hidden" name="{{ item.name }}" value="{{ item.value }}">
+            </label>
+        {% endif %}
+
+        <div>
+            {{ item.description }}
+        </div>
+
+    </div>
+</div>
+{% endfor %}

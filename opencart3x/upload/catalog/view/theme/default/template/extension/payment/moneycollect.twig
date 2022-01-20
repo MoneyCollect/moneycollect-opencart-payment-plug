@@ -1,0 +1,355 @@
+<style>
+    #mc-logo img{
+        margin-left: 5px;
+        max-height: 36px;
+    }
+    #mc-logo img:first-child{
+        margin-left: 0;
+    }
+    .mc-btn-close{
+        font-size: 20px;
+        margin-left: 10px;
+        display: none;
+    }
+    .mc-payment-method:hover  .mc-btn-close{
+        display: inline-block;
+    }
+</style>
+<div class="moneycollect">
+
+    <div id="mc-checkout-error"></div>
+
+    <div id="mc-checkout" class="text-center">
+
+        <div id="mc-logo">
+            {% for logo in logos %}
+                <img src="{{ logo.url }}" title="{{ logo.title }}">
+            {% endfor %}
+        </div>
+        {% if checkout_mode == 1 %}
+            <div id="mc-checkout-hosted">
+                <h4 >{{ text_redirect }}</h4>
+            </div>
+        {% else %}
+
+            <style>
+                .hide{
+                    display: none;
+                }
+                #mc-checkout-from{
+                    max-width: 550px;
+                    margin: 0 auto;
+                }
+                .mc-payment-method{
+                    margin-left: -18px;
+                }
+                #mc-card-element{
+                    margin-top: 5px;
+                }
+
+                @media (max-width:768px ){
+                    .mc-payment-method{
+                        margin-left: 0;
+                    }
+                }
+
+            </style>
+            <div id="mc-checkout-from" class="text-left">
+
+                {% if payment_methods %}
+                    {% for method in payment_methods %}
+                        <div class="mc-payment-method radio" id="mc-payment-method-{{ method.id }}" >
+                            <label>
+                                <input type="radio" name="mc_payment_method" value="{{ method.id }}" />
+                                <span>{{ method.card.brand }} •••• {{ method.card.last4 }} {{ method.card.expire }}</span>
+                                <button type="button" class="close mc-btn-close" onclick="moneycollect_form.delMethod($(this).parent().find('input'))" data-dismiss="alert">&times;</button>
+                            </label>
+                        </div>
+                    {% endfor %}
+
+                    <div class="mc-payment-method radio" id="mc-payment-method-new" >
+                        <label>
+                            <input type="radio" id="mc-payment-new" name="mc_payment_method" value="new" checked />
+                            <span>{{ text_new_card }}</span>
+                        </label>
+                    </div>
+
+                {% endif %}
+
+                <div id="mc-card-element">
+                    <h4 >{{ text_enter_card }}</h4>
+
+                    <div id="card-element"></div>
+
+                    {% if is_save_card %}
+                        <div class="checkbox">
+                            <label for="mc-card-save">
+                                <input type="checkbox" id="mc-card-save"  class="" name="" />
+                                {{ text_save_card }}
+                            </label>
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="text-center" >
+        <div class="buttons">
+            <input id="button-confirm" class="btn btn-primary" type="button" data-loading-text="{{ text_loading }}" value="{{ button_confirm }}" >
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    var button_confirm = $('#button-confirm');
+    var mc_checkout_error = $('#mc-checkout-error');
+
+
+
+    function showErr($msg) {
+        mc_checkout_error.append('<div class="alert alert-danger alert-dismissible">'+ $msg +'</div>');
+    }
+    function resetErr() {
+        mc_checkout_error.empty();
+    }
+    function loadErr($msg) {
+        $('#mc-checkout-from').empty().append('<div class="alert alert-danger alert-dismissible">'+ $msg +'</div>');
+    }
+
+    function buttonConfirm(start) {
+        if(start){
+            button_confirm.button('loading').attr('disabled', true);
+        }else {
+            button_confirm.button('reset').attr('disabled', false);
+        }
+
+    }
+
+    {% if checkout_mode == 1 %}
+    $("#button-confirm").bind("click",function(){
+        $.ajax(
+            {
+                type: "GET",
+                url: "/index.php?route=extension/moneycollect/checkout/create",
+                beforeSend: function()
+                {
+                    resetErr();
+                    buttonConfirm(true);
+                },
+                success: function(data)
+                {
+                    if( data.code === 'success' ){
+                        location = data.data.url
+                    }else {
+                        buttonConfirm(false);
+                        showErr(data.msg);
+                    }
+                },
+                fail: function () {
+                    buttonConfirm(false);
+                    alert('{{ text_error }}');
+                }
+            }
+        );
+    });
+    {% else %}
+
+    var mc_payment_method = $('input[name=mc_payment_method]');
+    var mc_card_save = $('#mc-card-save');
+
+    try {
+        var mc_sdk = window.MoneycollectPay('{{ api_key }}');
+
+        var moneycollect_form = {
+            from: $('#mc-checkout-from'),
+            paymentType: 'new',
+            paymentMethodID: null,
+            saveCard: false,
+
+            init: function () {
+
+                button_confirm.attr('disabled', true);
+
+                if( this.from.length ){
+
+                    mc_sdk.elementInit("payment_steps",{
+                        formId: 'mc-card-element',
+                        frameId: 'mc-card-frame',
+                        mode: '{{ sdk_mode }}',
+                        customerId: '',
+                        autoValidate:false,
+                        layout: {{ layout }}
+                    }).then(() => {
+                        button_confirm.attr('disabled', false);
+                        button_confirm.bind('click',this.onSubmit);
+                    }).catch((error) => {
+                        loadErr(error)
+                    });
+
+                    this.controlMethod()
+
+                }
+            },
+            onSubmit: function () {
+                resetErr();
+                buttonConfirm(true);
+
+                if( moneycollect_form.paymentType === 'id' ){
+                    moneycollect_form.request(false);
+                    return;
+                }
+
+                let data = {{ billing }};
+
+                let paymentMethodObj = {
+                    'billingDetails': data
+                };
+
+                mc_sdk.confirmPaymentMethod({
+                    paymentMethod: paymentMethodObj
+                }).then((result) => {
+                    if( result.data.code === "success" ){
+                        moneycollect_form.paymentMethodID = result.data.data.id;
+                        moneycollect_form.request(true);
+                    }else {
+                        buttonConfirm(false);
+                        showErr(result.data.msg);
+                    }
+                }).catch((error) => {
+                    showErr(error)
+                });
+
+            },
+            request: function (new_id) {
+
+                $.ajax({
+                    type: "POST",
+                    url: "/index.php?route=extension/moneycollect/checkout/payment",
+                    data: {
+                        id: moneycollect_form.paymentMethodID,
+                        type: moneycollect_form.paymentType,
+                        save_card: moneycollect_form.saveCard
+                    },
+                    success: function(data)
+                    {
+                        if( data.code === 'success' ){
+                            location = data.redirect
+                        }else {
+                            buttonConfirm(false);
+                            showErr(data.msg);
+                            if( new_id ){
+                                moneycollect_form.paymentMethodID = null;
+                            }
+                        }
+                    },
+                    error: function () {
+                        buttonConfirm(false);
+                        alert('{{ text_error }}');
+                    }
+                })
+
+            },
+            controlMethod: function () {
+                
+                if( mc_payment_method.length > 0 ){
+                    mc_payment_method.bind('change',function () {
+
+
+                        if( $(this).val() === 'new' ){
+
+                            moneycollect_form.paymentType = 'new';
+                            moneycollect_form.paymentMethodID = null;
+                            $('#mc-card-element').removeClass('hide');
+
+                        }else{
+
+                            moneycollect_form.paymentType = 'id';
+                            moneycollect_form.paymentMethodID = $(this).val();
+                            moneycollect_form.saveCard = false;
+
+                            $('#mc-card-element').addClass('hide');
+                            mc_card_save.attr('checked',false);
+
+                        }
+
+                    });
+                }
+                
+                if( mc_card_save.length > 0 ){
+                    mc_card_save.bind('change',function () {
+                        if( $(this).is(':checked') ){
+                            moneycollect_form.saveCard = true
+                        }else{
+                            moneycollect_form.saveCard = false
+                        }
+                    })
+                }
+
+
+
+            },
+            delMethod: function (_this) {
+                let id = _this.val();
+
+                $.ajax({
+                    type: 'POST',
+                    url: "/index.php?route=extension/moneycollect/checkout/relieve/",
+                    data: {
+                        id: id
+                    },
+                    success: function (data) {
+
+                        if( data.code === 'success' ){
+
+                            $('#mc-payment-method-'+id).remove();
+
+                            if( _this.is(':checked') ){
+
+                                moneycollect_form.paymentMethodID = null;
+                                moneycollect_form.paymentType = 'new';
+
+                                $('#mc-payment-new').prop('checked',true);
+                                $('#mc-card-element').removeClass('hide');
+
+                            }
+
+                            if( $('.mc-payment-method').length === 1 ){
+                                $('#mc-payment-method-new').remove();
+                            }
+
+                        }else {
+                            showErr(data.msg);
+                        }
+
+                    }
+                });
+
+                return;
+
+
+
+            }
+        };
+
+        moneycollect_form.init();
+
+        if( typeof getError !== 'undefined'){
+            window.removeEventListener("getErrorMessage",getError);
+        }
+
+        window.addEventListener("getErrorMessage", getError = function (e) {
+            if( e.detail.errorMessage !== '' ){
+                showErr( e.detail.errorMessage );
+                buttonConfirm(false);
+            }
+        });
+
+    }catch( error ) {
+        loadErr( error );
+    }
+    {% endif %}
+</script>
