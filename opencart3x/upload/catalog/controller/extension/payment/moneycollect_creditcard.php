@@ -90,7 +90,7 @@ class ControllerExtensionPaymentMoneycollectCreditCard extends Controller {
 
             $data['payment_methods'] = $payment_methods;
             $data['api_key'] = $this->mc_model->helper()->getPuKey();
-            $data['sdk_mode'] = 'test';
+            $data['sdk_mode'] = 'pro';
             $data['layout'] = json_encode([
                 'pageMode' => $from_style,// 页面风格模式  inner | block
                 'style' => [
