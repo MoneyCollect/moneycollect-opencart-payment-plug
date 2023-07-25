@@ -21,19 +21,8 @@ class ModelExtensionPaymentMoneycollectCreditCard extends Model {
                 'title'      => $this->mc_model->helper()->getSetting($this->code.'_title'),
                 'sort_order' => $this->mc_model->helper()->getSetting($this->code.'_sort_order')
             );
-
-		    if( $this->mc_model->helper()->getSetting($this->code.'_checkout_mode') == '0' ){
-                $this->loadResources();
-            }
-
 		}
 
     	return $method_data;
   	}
-
-	private function loadResources() {
-  	    $api = $this->mc_model->api();
-  		echo '<script src="'.$api::JSSDK.'"></script>';
-        //$this->document->addScript($api::JSSDK);
-	}
 }

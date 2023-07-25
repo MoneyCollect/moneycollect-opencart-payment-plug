@@ -162,180 +162,188 @@
     var mc_card_save = $('#mc-card-save');
 
     try {
-        var mc_sdk = window.MoneycollectPay('{{ api_key }}');
 
-        var moneycollect_form = {
-            from: $('#mc-checkout-from'),
-            paymentType: 'new',
-            paymentMethodID: null,
-            saveCard: false,
+        var dependencyScript = document.createElement('script');
+        dependencyScript.src = "{{ mc_sdk }}";
 
-            init: function () {
+        dependencyScript.onload = function() {
+            var mc_sdk = window.MoneycollectPay('{{ api_key }}');
 
-                button_confirm.attr('disabled', true);
+            var moneycollect_form = {
+                from: $('#mc-checkout-from'),
+                paymentType: 'new',
+                paymentMethodID: null,
+                saveCard: false,
 
-                if( this.from.length ){
+                init: function () {
 
-                    mc_sdk.elementInit("payment_steps",{
-                        formId: 'mc-card-element',
-                        frameId: 'mc-card-frame',
-                        mode: '{{ sdk_mode }}',
-                        customerId: '',
-                        autoValidate:false,
-                        layout: {{ layout }}
-                    }).then(() => {
-                        button_confirm.attr('disabled', false);
-                        button_confirm.bind('click',this.onSubmit);
-                    }).catch((error) => {
-                        loadErr(error)
-                    });
+                    button_confirm.attr('disabled', true);
 
-                    this.controlMethod()
+                    if( this.from.length ){
 
-                }
-            },
-            onSubmit: function () {
-                resetErr();
-                buttonConfirm(true);
+                        mc_sdk.elementInit("payment_steps",{
+                            formId: 'mc-card-element',
+                            frameId: 'mc-card-frame',
+                            mode: '{{ sdk_mode }}',
+                            customerId: '',
+                            autoValidate:false,
+                            layout: {{ layout }}
+                        }).then(() => {
+                            button_confirm.attr('disabled', false);
+                            button_confirm.bind('click',this.onSubmit);
+                        }).catch((error) => {
+                            loadErr(error)
+                        });
 
-                if( moneycollect_form.paymentType === 'id' ){
-                    moneycollect_form.request(false);
-                    return;
-                }
+                        this.controlMethod()
 
-                let data = {{ billing }};
-
-                let paymentMethodObj = {
-                    'billingDetails': data
-                };
-
-                mc_sdk.confirmPaymentMethod({
-                    paymentMethod: paymentMethodObj
-                }).then((result) => {
-                    if( result.data.code === "success" ){
-                        moneycollect_form.paymentMethodID = result.data.data.id;
-                        moneycollect_form.request(true);
-                    }else {
-                        buttonConfirm(false);
-                        showErr(result.data.msg);
                     }
-                }).catch((error) => {
-                    showErr(error)
-                });
+                },
+                onSubmit: function () {
+                    resetErr();
+                    buttonConfirm(true);
 
-            },
-            request: function (new_id) {
+                    if( moneycollect_form.paymentType === 'id' ){
+                        moneycollect_form.request(false);
+                        return;
+                    }
 
-                $.ajax({
-                    type: "POST",
-                    url: "/index.php?route=extension/moneycollect/checkout/payment",
-                    data: {
-                        id: moneycollect_form.paymentMethodID,
-                        type: moneycollect_form.paymentType,
-                        save_card: moneycollect_form.saveCard
-                    },
-                    success: function(data)
-                    {
-                        if( data.code === 'success' ){
-                            location = data.redirect
+                    let data = {{ billing }};
+
+                    let paymentMethodObj = {
+                        'billingDetails': data
+                    };
+
+                    mc_sdk.confirmPaymentMethod({
+                        paymentMethod: paymentMethodObj
+                    }).then((result) => {
+                        if( result.data.code === "success" ){
+                            moneycollect_form.paymentMethodID = result.data.data.id;
+                            moneycollect_form.request(true);
                         }else {
                             buttonConfirm(false);
-                            showErr(data.msg);
-                            if( new_id ){
-                                moneycollect_form.paymentMethodID = null;
-                            }
+                            showErr(result.data.msg);
                         }
-                    },
-                    error: function () {
-                        buttonConfirm(false);
-                        alert('{{ text_error }}');
-                    }
-                })
-
-            },
-            controlMethod: function () {
-                
-                if( mc_payment_method.length > 0 ){
-                    mc_payment_method.bind('change',function () {
-
-
-                        if( $(this).val() === 'new' ){
-
-                            moneycollect_form.paymentType = 'new';
-                            moneycollect_form.paymentMethodID = null;
-                            $('#mc-card-element').removeClass('hide');
-
-                        }else{
-
-                            moneycollect_form.paymentType = 'id';
-                            moneycollect_form.paymentMethodID = $(this).val();
-                            moneycollect_form.saveCard = false;
-
-                            $('#mc-card-element').addClass('hide');
-                            mc_card_save.attr('checked',false);
-
-                        }
-
+                    }).catch((error) => {
+                        showErr(error)
                     });
-                }
-                
-                if( mc_card_save.length > 0 ){
-                    mc_card_save.bind('change',function () {
-                        if( $(this).is(':checked') ){
-                            moneycollect_form.saveCard = true
-                        }else{
-                            moneycollect_form.saveCard = false
+
+                },
+                request: function (new_id) {
+
+                    $.ajax({
+                        type: "POST",
+                        url: "/index.php?route=extension/moneycollect/checkout/payment",
+                        data: {
+                            id: moneycollect_form.paymentMethodID,
+                            type: moneycollect_form.paymentType,
+                            save_card: moneycollect_form.saveCard
+                        },
+                        success: function(data)
+                        {
+                            if( data.code === 'success' ){
+                                location = data.redirect
+                            }else {
+                                buttonConfirm(false);
+                                showErr(data.msg);
+                                if( new_id ){
+                                    moneycollect_form.paymentMethodID = null;
+                                }
+                            }
+                        },
+                        error: function () {
+                            buttonConfirm(false);
+                            alert('{{ text_error }}');
                         }
                     })
-                }
+
+                },
+                controlMethod: function () {
+
+                    if( mc_payment_method.length > 0 ){
+                        mc_payment_method.bind('change',function () {
 
 
+                            if( $(this).val() === 'new' ){
 
-            },
-            delMethod: function (_this) {
-                let id = _this.val();
-
-                $.ajax({
-                    type: 'POST',
-                    url: "/index.php?route=extension/moneycollect/checkout/relieve/",
-                    data: {
-                        id: id
-                    },
-                    success: function (data) {
-
-                        if( data.code === 'success' ){
-
-                            $('#mc-payment-method-'+id).remove();
-
-                            if( _this.is(':checked') ){
-
-                                moneycollect_form.paymentMethodID = null;
                                 moneycollect_form.paymentType = 'new';
-
-                                $('#mc-payment-new').prop('checked',true);
+                                moneycollect_form.paymentMethodID = null;
                                 $('#mc-card-element').removeClass('hide');
 
+                            }else{
+
+                                moneycollect_form.paymentType = 'id';
+                                moneycollect_form.paymentMethodID = $(this).val();
+                                moneycollect_form.saveCard = false;
+
+                                $('#mc-card-element').addClass('hide');
+                                mc_card_save.attr('checked',false);
+
                             }
 
-                            if( $('.mc-payment-method').length === 1 ){
-                                $('#mc-payment-method-new').remove();
-                            }
-
-                        }else {
-                            showErr(data.msg);
-                        }
-
+                        });
                     }
-                });
 
-                return;
+                    if( mc_card_save.length > 0 ){
+                        mc_card_save.bind('change',function () {
+                            if( $(this).is(':checked') ){
+                                moneycollect_form.saveCard = true
+                            }else{
+                                moneycollect_form.saveCard = false
+                            }
+                        })
+                    }
 
 
 
-            }
+                },
+                delMethod: function (_this) {
+                    let id = _this.val();
+
+                    $.ajax({
+                        type: 'POST',
+                        url: "/index.php?route=extension/moneycollect/checkout/relieve/",
+                        data: {
+                            id: id
+                        },
+                        success: function (data) {
+
+                            if( data.code === 'success' ){
+
+                                $('#mc-payment-method-'+id).remove();
+
+                                if( _this.is(':checked') ){
+
+                                    moneycollect_form.paymentMethodID = null;
+                                    moneycollect_form.paymentType = 'new';
+
+                                    $('#mc-payment-new').prop('checked',true);
+                                    $('#mc-card-element').removeClass('hide');
+
+                                }
+
+                                if( $('.mc-payment-method').length === 1 ){
+                                    $('#mc-payment-method-new').remove();
+                                }
+
+                            }else {
+                                showErr(data.msg);
+                            }
+
+                        }
+                    });
+
+                    return;
+
+
+
+                }
+            };
+
+            moneycollect_form.init();
         };
 
-        moneycollect_form.init();
+        document.body.appendChild(dependencyScript);
 
         if( typeof getError !== 'undefined'){
             window.removeEventListener("getErrorMessage",getError);
@@ -343,6 +351,7 @@
 
         window.addEventListener("getErrorMessage", getError = function (e) {
             if( e.detail.errorMessage !== '' ){
+                resetErr();
                 showErr( e.detail.errorMessage );
                 buttonConfirm(false);
             }

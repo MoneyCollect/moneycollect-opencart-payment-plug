@@ -111,6 +111,8 @@ class ControllerExtensionPaymentMoneycollectCreditCard extends Controller {
 
         }
 
+        $data['mc_sdk'] = Moneycollect\Api::JSSDK;
+
         return $this->load->view('/extension/payment/moneycollect', $data);
 
     }

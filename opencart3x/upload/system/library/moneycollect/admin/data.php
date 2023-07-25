@@ -4,7 +4,7 @@ namespace Moneycollect\Admin;
 class Data
 {
     private $controller;
-    var $edition = 'v1.0.2';
+    var $edition = 'v1.0.3';
     var $url;
 
     function __construct($controller){
